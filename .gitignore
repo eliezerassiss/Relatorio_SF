@@ -1,0 +1,28 @@
+# --- Dependências (Obrigatório) ---
+# Ignora a pasta gigante de bibliotecas baixadas
+node_modules/
+
+# --- Segurança (CRÍTICO) ---
+# Ignora arquivos que podem conter senhas ou chaves de API
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# --- Logs ---
+# Ignora arquivos de log de erro
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# --- Sistema Operacional (Lixo) ---
+# Arquivos gerados pelo Mac e Windows que não devem ir pro código
+.DS_Store
+Thumbs.db
+
+# --- IDEs e Editores ---
+# Configurações locais do VS Code ou JetBrains
+.vscode/
+.idea/
