@@ -6,21 +6,20 @@ services:
     name: proxy-backend
     runtime: node
     plan: free 
-    rootDirectory: backend # Aponta para a pasta do servidor
+    rootDirectory: backend
     buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: SECONDARY_PROXY_URL
-        sync: false # 'false' obriga você a digitar o valor no Painel do Render (segurança)
+        sync: false
 
-  # ----------------------------------------
-  # SERVIÇO 2: O Frontend (Site de Visualização)
-  # ----------------------------------------
-  - type: static
-    name: proxy-frontend
+# ----------------------------------------
+# SERVIÇO 2: O Frontend (Site Estático)
+# MUDANÇA: Sites estáticos têm sua própria seção "staticSites"
+# ----------------------------------------
+staticSites:
+  - name: proxy-frontend
+    rootDirectory: frontend
+    buildCommand: "" # HTML puro não precisa de build
+    staticPublishPath: .
     plan: free
-    rootDirectory: frontend # Aponta para a pasta do HTML
-    # Como é HTML puro, não precisa de comando de build. 
-    # Se estivesse usando React/Vue, seria 'npm run build'.
-    buildCommand: "" 
-    staticPublishPath: . # Publica os arquivos dentro da pasta frontend
