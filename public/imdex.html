@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>LeChef Monitor</title>
+
+<style>
+body { background:#111;color:#fff;font-family:Arial;margin:0 }
+header { background:#000;padding:15px;text-align:center }
+.controls { padding:10px }
+.card { background:#ff9800;padding:10px;border-radius:8px;margin-bottom:6px }
+select,button { padding:6px;margin-right:5px }
+#financeiro,#ranking { padding:10px }
+</style>
+</head>
+
+<body>
+
+<header>📡 LeChef – Monitoramento em Tempo Real</header>
+
+<div class="controls">
+  <select id="mesaFiltro"></select>
+    <button onclick="exportar()">⬇ Excel</button>
+    </div>
+
+    <div id="financeiro"></div>
+    <div id="ranking"></div>
+    <div id="log"></div>
+
+    <script>
+    const logDiv = document.getElementById('log');
+    const filtro = document.getElementById('mesaFiltro');
+
+    let dados = [];
+
+    function parse(p) {
+        let produto='', qtde='';
+            if (!p) return {produto,qtde};
+                p.split('&').forEach(i=>{
+                        const[k,v]=i.split('=');
+                                if(k==='nome_item') produto=decodeURIComponent(v||'');
+                                        if(k==='quantidade') qtde=v;
+                                            });
+                                                return {produto,qtde};
+                                                }
+
+                                                async function carregar() {
+                                                    const r = await fetch('/api/historico');
+                                                        dados = (await r.json()).filter(d=>d.tipo==='LANÇAMENTO');
+
+                                                            const mesas=[...new Set(dados.map(d=>d.mesa))];
+                                                                filtro.innerHTML='<option value="">Todas mesas</option>';
+                                                                    mesas.forEach(m=>filtro.innerHTML+=`<option>${m}</option>`);
+
+                                                                        render();
+                                                                            financeiro();
+                                                                                ranking();
+                                                                                }
+
+                                                                                function render() {
+                                                                                    logDiv.innerHTML='';
+                                                                                        dados.filter(d=>!filtro.value||d.mesa===filtro.value)
+                                                                                                .forEach(d=>{
+                                                                                                            const {produto,qtde}=parse(d.payload);
+                                                                                                                        const div=document.createElement('div');
+                                                                                                                                    div.className='card';
+                                                                                                                                                div.innerHTML=`Mesa: ${d.mesa}<br>Produto: ${produto}<br>Qtde: ${qtde}<br>${new Date(d.timestamp).toLocaleTimeString()}`;
+                                                                                                                                                            logDiv.appendChild(div);
+                                                                                                                                                                    });
+                                                                                                                                                                    }
+
+                                                                                                                                                                    async function financeiro() {
+                                                                                                                                                                        const f = await (await fetch('/api/financeiro')).json();
+                                                                                                                                                                            document.getElementById('financeiro').innerHTML=
+                                                                                                                                                                                  `💰 Total: R$ ${f.total.toFixed(2)} | Comissão: R$ ${f.comissao.toFixed(2)} | Taxa: R$ ${f.taxa.toFixed(2)}`;
+                                                                                                                                                                                  }
+
+                                                                                                                                                                                  async function ranking() {
+                                                                                                                                                                                      const r = await (await fetch('/api/ranking')).json();
+                                                                                                                                                                                          document.getElementById('ranking').innerHTML =
+                                                                                                                                                                                                '<h3>🏆 Ranking</h3>' + r.map((x,i)=>`${i+1}º ${x.mesa} — R$ ${x.total.toFixed(2)}`).join('<br>');
+                                                                                                                                                                                                }
+
+                                                                                                                                                                                                function exportar() {
+                                                                                                                                                                                                    window.open('/api/export/excel','_blank');
+                                                                                                                                                                                                    }
+
+                                                                                                                                                                                                    filtro.onchange=render;
+                                                                                                                                                                                                    carregar();
+                                                                                                                                                                                                    setInterval(carregar,5000);
+                                                                                                                                                                                                    </script>
+
+                                                                                                                                                                                                    </body>
+                                                                                                                                                                                                    </html>
