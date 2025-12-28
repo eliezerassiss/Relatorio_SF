@@ -1,43 +1,114 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Histórico de Ações LeChef</title>
-    <style>
-        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
-        .log-entry { border-bottom: 1px solid #333; padding: 10px; margin-bottom: 10px; }
-        .time { color: #888; }
-        .payload { color: #fff; background: #222; padding: 5px; display: block; margin-top: 5px; white-space: pre-wrap; word-break: break-all; }
-        .tag { background: #005500; color: #0f0; padding: 2px 5px; border-radius: 3px; font-size: 0.8em; }
-    </style>
+<meta charset="UTF-8">
+<title>LeChef Monitor</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #fff;
+}
+header {
+    padding: 15px;
+    background: #000;
+    text-align: center;
+    font-size: 20px;
+}
+#stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+    gap: 10px;
+    padding: 10px;
+}
+.stat {
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+.stat h2 {
+    margin: 0;
+    color: #4caf50;
+}
+#log {
+    padding: 10px;
+}
+.card {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+.consulta { background:#1e88e5; }
+.lancamento { background:#ff9800; }
+.payload {
+    background: rgba(0,0,0,.3);
+    margin-top: 5px;
+    padding: 5px;
+    font-size: 13px;
+}
+</style>
 </head>
+
 <body>
-    <h2>📡 Log de Ações em Tempo Real (Interceptador)</h2>
-    <div id="lista">Aguardando ações...</div>
 
-    <script>
-        async function carregar() {
-            const res = await fetch('/api/historico');
-            const dados = await res.json();
-            const lista = document.getElementById('lista');
+<header>📡 LeChef – Monitoramento em Tempo Real</header>
 
-            if(dados.length === 0) {
-                lista.innerHTML = "Nenhuma ação interceptada ainda.";
-                return;
-            }
+<section id="stats"></section>
+<div id="log"></div>
 
-            lista.innerHTML = dados.map(log => `
-                <div class="log-entry">
-                    <span class="time">[${log.data}]</span> 
-                    <span class="tag">POST -> ${log.detalhes.url_original.split('/').pop()}</span>
-                    <div class="payload"><b>DADOS ENVIADOS:</b><br>${log.detalhes.payload}</div>
-                    <div style="color: #444; font-size: 0.8em;">Resposta do Servidor: ${log.detalhes.resposta.substring(0, 100)}...</div>
-                </div>
-            `).join('');
-        }
+<script>
+const logDiv = document.getElementById('log');
+const statsDiv = document.getElementById('stats');
 
-        setInterval(carregar, 5000);
-        carregar();
-    </script>
+function parsePayload(p) {
+    if (!p || typeof p !== 'string') return '';
+    return p.split('&').map(i => {
+        const [k,v] = i.split('=');
+        return `<div><b>${decodeURIComponent(k)}</b>: ${decodeURIComponent(v||'')}</div>`;
+    }).join('');
+}
+
+async function atualizarLog() {
+    const r = await fetch('/api/historico');
+    const d = await r.json();
+    logDiv.innerHTML = '';
+
+    d.forEach(i => {
+        const c = document.createElement('div');
+        c.className = 'card ' + (i.tipo === 'CONSULTA' ? 'consulta' : 'lancamento');
+        c.innerHTML = `
+            <b>Mesa:</b> ${i.mesa}<br>
+            <b>Ação:</b> ${i.tipo}<br>
+            <b>Hora:</b> ${new Date(i.timestamp).toLocaleString()}
+            <div class="payload">${parsePayload(i.payload)}</div>
+        `;
+        logDiv.appendChild(c);
+    });
+}
+
+async function atualizarStats() {
+    const r = await fetch('/api/estatisticas');
+    const s = await r.json();
+
+    statsDiv.innerHTML = `
+        <div class="stat"><h2>${s.total}</h2>Total</div>
+        <div class="stat"><h2>${s.consultas}</h2>Consultas</div>
+        <div class="stat"><h2>${s.lancamentos}</h2>Lançamentos</div>
+        <div class="stat"><h2>${Object.keys(s.mesas).length}</h2>Mesas Ativas</div>
+        <div class="stat"><h2>${s.ultima ? new Date(s.ultima).toLocaleTimeString() : '-'}</h2>Última</div>
+    `;
+}
+
+atualizarLog();
+atualizarStats();
+setInterval(() => {
+    atualizarLog();
+    atualizarStats();
+}, 5000);
+</script>
+
 </body>
 </html>
